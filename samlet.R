@@ -54,3 +54,28 @@ perf_table <- bind_rows(
 
 perf_table
 
+
+
+
+indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
+  cap <- 100000 * multiplier
+
+  # Beregn for hver portefølje i perf_table
+  u <- perf_table %>%
+    mutate(
+      Forventet_afkast = `Årligt afkast`,
+      SD = `Årlig volatilitet`,
+      Mean_Profit = pmax(cap * Forventet_afkast * profit_pct, 0),
+      Lower_CI = pmax(cap * (Forventet_afkast - 1.96 * SD) * profit_pct, 0),
+      Upper_CI = cap * (Forventet_afkast + 1.96 * SD) * profit_pct
+    ) %>%
+    select(Portefølje, Mean_Profit, Lower_CI, Upper_CI)
+
+  return(u)
+}
+
+
+indtjeningscalc(multiplier = 10, profit_pct = 0.2)
+
+
+
