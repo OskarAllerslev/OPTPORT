@@ -39,10 +39,49 @@ returns <- read_csv("data/data_udvalgt.csv") %>%
 returns_mat <- returns %>% select(-Date) %>% as.matrix()
 
 # Benchmark return
-benchmark_name <- "EQQQ.DE"
-benchmark_weights <- rep(0, ncol(returns_mat))
-names(benchmark_weights) <- colnames(returns_mat)
-benchmark_weights[benchmark_name] <- 1
+benchmark_name <- "ERNE.AS"
+# benchmark_weights <- rep(0, ncol(returns_mat))
+# names(benchmark_weights) <- colnames(returns_mat)
+# benchmark_weights[benchmark_name] <- 1
+
+benchmark_weights <- setNames(as.numeric(colnames(returns_mat) == benchmark_name), colnames(returns_mat))
+
+
+
+
+### hent benchmark ----
+
+get_vusa <- function(from = "2021-01-01") {
+  tryCatch({
+    vusa_px <- Ad(getSymbols("VUSA.AS", from = from, src = "yahoo", auto.assign = FALSE))
+    vusa_ret <- monthlyReturn(vusa_px, type = "log")
+    colnames(vusa_ret) <- "VUSA.AS"
+    return(vusa_ret)
+  }, error = function(e) {
+    message("Kunne ikke hente VUSA.AS: ", e$message)
+    return(NULL)
+  })
+}
+returns_xts <- read_csv("data/data_udvalgt.csv") %>%
+  rename(Date = 1) %>%
+  mutate(Date = as.Date(Date)) %>%
+  drop_na()
+
+returns_xts <- xts::xts(returns_xts %>% select(-Date), order.by = returns_xts$Date)
+
+vusa_ret <- get_vusa()
+
+if (!is.null(vusa_ret)) {
+  combined_returns <- merge(returns_xts, vusa_ret, join = "inner")
+  write.zoo(combined_returns, file = "data/data_udvalgt.csv", sep = ",")  # Gem ny data
+  message("✅ VUSA.AS tilføjet til data_udvalgt.csv")
+} else {
+  warning("❌ VUSA.AS blev ikke tilføjet.")
+}
+
+
+benchmark_name <- "VUSA.AS"
+
 
 # Performance summaries
 perf_table <- bind_rows(
@@ -55,7 +94,7 @@ perf_table <- bind_rows(
 perf_table
 
 
-
+# indtjening -------------------------------------------------------------------
 
 indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
   cap <- 100000 * multiplier
@@ -78,4 +117,35 @@ indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
 indtjeningscalc(multiplier = 10, profit_pct = 0.2)
 
 
+
+
+# regression --------------------------------------------------------------
+
+
+# Funktion til at beregne beta ift. benchmark
+estimate_beta <- function(weights, returns_mat, benchmark_name) {
+  port_returns <- as.numeric(returns_mat %*% weights)
+  benchmark_returns <- returns_mat[, benchmark_name]
+
+  model <- lm(port_returns ~ benchmark_returns)
+  beta <- coef(model)[2]
+  r_squared <- summary(model)$r.squared
+
+  return(tibble(Beta = round(beta, 4), R_squared = round(r_squared, 4)))
+}
+
+# Estimer betaer
+beta_table <- bind_rows(
+  Sharpe = estimate_beta(sharpe_result$Weight, returns_mat, benchmark_name),
+  CVaR = estimate_beta(cvar_result$Weight, returns_mat, benchmark_name),
+  Benchmark = tibble(Beta = 1, R_squared = 1),
+  .id = "Portefølje"
+)
+
+beta_table
+
+perf_summary <- perf_table %>%
+  left_join(beta_table, by = "Portefølje")
+
+perf_summary
 

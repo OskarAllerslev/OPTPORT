@@ -29,8 +29,11 @@ start_ticker <- volatilitet %>%
   .[1]
 selected <- start_ticker
 
+t <- nrow(returns)
+N <- base::floor((t-1)/2)
+
 # greedy udvælgelse
-while (length(selected) < 30) {
+while (length(selected) < N) {
   candidates <- setdiff(colnames(cor_mat), selected)
 
   avg_corr <- sapply(candidates, function(c) {

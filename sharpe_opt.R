@@ -52,76 +52,76 @@ sharpe_optim <- function(path_to_csv = "data/data_udvalgt.csv", rf_annual = 0.04
 
 
 
-
-# plot --------------------------------------------------------------------
-
-library(scales)
-
-
-# 1. Indlæs og forbered
-returns_xts <- read_csv("data/data_udvalgt.csv") %>%
-  rename(Date = 1) %>%
-  mutate(Date = as.Date(Date)) %>%
-  drop_na()
-
-dates <- returns_xts$Date
-returns_mat <- returns_xts %>% select(-Date) %>% as.matrix()
-
-# 2. Beregn portefølje og benchmark
-port_returns <- as.numeric(returns_mat %*% w_opt)
-cum_port <- 100 * exp(cumsum(port_returns))
-
-benchmark_name <- "EQQQ.DE"
-benchmark_returns <- returns_mat[, benchmark_name]
-cum_benchmark <- 100 * exp(cumsum(benchmark_returns))
-
-# 3. Fjern benchmark fra asset-matrix inden plot
-asset_names <- setdiff(colnames(returns_mat), benchmark_name)
-cum_assets <- apply(returns_mat[, asset_names], 2, function(x) 100 * exp(cumsum(x)))
-
-# 4. Saml alt i ét plot-dataframe
-performance_df <- as_tibble(cum_assets)
-performance_df$Date <- dates
-
-# Tilføj portefølje og benchmark
-performance_df <- performance_df %>%
-  mutate(Portfolio = cum_port,
-         Benchmark = cum_benchmark)
-
-# 5. Omform til long format
-performance_long <- performance_df %>%
-  pivot_longer(-Date, names_to = "Asset", values_to = "Value") %>%
-  mutate(Type = case_when(
-    Asset == "Portfolio" ~ "Portfolio",
-    Asset == "Benchmark" ~ "Benchmark",
-    TRUE ~ "Asset"
-  ))
-
-# 6. Plot med farver og lagorden
-ggplot() +
-  geom_line(
-    data = performance_long %>% filter(Type == "Asset"),
-    aes(x = Date, y = Value, group = Asset),
-    color = "gray", size = 0.5, alpha = 0.7
-  ) +
-  geom_line(
-    data = performance_long %>% filter(Type == "Benchmark"),
-    aes(x = Date, y = Value),
-    color = "red", size = 1.2
-  ) +
-  geom_line(
-    data = performance_long %>% filter(Type == "Portfolio"),
-    aes(x = Date, y = Value),
-    color = "green", size = 1.2
-  ) +
-  labs(title = "📊 Portefølje vs Benchmark vs Aktiver",
-       y = "Værdi (Start = 100 kr)", x = NULL) +
-  scale_y_continuous(labels = dollar_format(suffix = " kr", prefix = "")) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        plot.title = element_text(face = "bold"))
-
-
-
-
-
+#
+# # plot --------------------------------------------------------------------
+#
+# library(scales)
+#
+#
+# # 1. Indlæs og forbered
+# returns_xts <- read_csv("data/data_udvalgt.csv") %>%
+#   rename(Date = 1) %>%
+#   mutate(Date = as.Date(Date)) %>%
+#   drop_na()
+#
+# dates <- returns_xts$Date
+# returns_mat <- returns_xts %>% select(-Date) %>% as.matrix()
+#
+# # 2. Beregn portefølje og benchmark
+# port_returns <- as.numeric(returns_mat %*% w_opt)
+# cum_port <- 100 * exp(cumsum(port_returns))
+#
+# benchmark_name <- "EQQQ.DE"
+# benchmark_returns <- returns_mat[, benchmark_name]
+# cum_benchmark <- 100 * exp(cumsum(benchmark_returns))
+#
+# # 3. Fjern benchmark fra asset-matrix inden plot
+# asset_names <- setdiff(colnames(returns_mat), benchmark_name)
+# cum_assets <- apply(returns_mat[, asset_names], 2, function(x) 100 * exp(cumsum(x)))
+#
+# # 4. Saml alt i ét plot-dataframe
+# performance_df <- as_tibble(cum_assets)
+# performance_df$Date <- dates
+#
+# # Tilføj portefølje og benchmark
+# performance_df <- performance_df %>%
+#   mutate(Portfolio = cum_port,
+#          Benchmark = cum_benchmark)
+#
+# # 5. Omform til long format
+# performance_long <- performance_df %>%
+#   pivot_longer(-Date, names_to = "Asset", values_to = "Value") %>%
+#   mutate(Type = case_when(
+#     Asset == "Portfolio" ~ "Portfolio",
+#     Asset == "Benchmark" ~ "Benchmark",
+#     TRUE ~ "Asset"
+#   ))
+#
+# # 6. Plot med farver og lagorden
+# ggplot() +
+#   geom_line(
+#     data = performance_long %>% filter(Type == "Asset"),
+#     aes(x = Date, y = Value, group = Asset),
+#     color = "gray", size = 0.5, alpha = 0.7
+#   ) +
+#   geom_line(
+#     data = performance_long %>% filter(Type == "Benchmark"),
+#     aes(x = Date, y = Value),
+#     color = "red", size = 1.2
+#   ) +
+#   geom_line(
+#     data = performance_long %>% filter(Type == "Portfolio"),
+#     aes(x = Date, y = Value),
+#     color = "green", size = 1.2
+#   ) +
+#   labs(title = "📊 Portefølje vs Benchmark vs Aktiver",
+#        y = "Værdi (Start = 100 kr)", x = NULL) +
+#   scale_y_continuous(labels = dollar_format(suffix = " kr", prefix = "")) +
+#   theme_minimal(base_size = 14) +
+#   theme(legend.position = "none",
+#         plot.title = element_text(face = "bold"))
+#
+#
+#
+#
+#
