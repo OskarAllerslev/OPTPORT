@@ -109,7 +109,7 @@ tickers <- c(
 
 
 
-get_prices <- function(ticker, from = "2021-01-01") {
+get_prices <- function(ticker, from = "2017-01-01") {
   tryCatch({
     raw <- getSymbols(ticker, src = "yahoo", from = from, auto.assign = FALSE)
     px <- Ad(raw)
@@ -153,7 +153,7 @@ for (t in tickers) {
 
 returns_df <- do.call(merge, ret_list)
 returns_df <- na.omit(returns_df)
-write.csv(returns_df, "data/monthly_log_returns.csv")
+write.csv(returns_df, "data/monthly_log_returns_2017.csv")
 
 cat("Task done. No of assets: ", ncol(returns_df), "\n")
 

@@ -6,7 +6,7 @@ library(xts)
 library(ggplot2)
 
 
-returns <- read_csv("data/monthly_log_returns.csv") %>%
+returns <- read_csv("data/monthly_log_returns_2017.csv") %>%
   dplyr::rename(Date = 1) %>%
   dplyr::mutate(Date = as.Date(Date))
 
