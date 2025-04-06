@@ -3,7 +3,7 @@ plot_portfolios_vs_benchmark <- function(sharpe_result, cvar_result, benchmark_n
   library(scales)
 
   # 1. Indlæs og forbered data
-  returns_xts <- read_csv("data/data_udvalgt.csv") %>%
+  returns_xts <- read_csv("data/monthly_log_returns.csv") %>%
     rename(Date = 1) %>%
     mutate(Date = as.Date(Date)) %>%
     drop_na()

@@ -31,7 +31,7 @@ summarize_performance <- function(weights, returns_mat, rf_annual = 0.044) {
   )
 }
 # Fjern dato og benchmark
-returns <- read_csv("data/data_udvalgt.csv") %>%
+returns <- read_csv("data/monthly_log_returns.csv") %>%
   rename(Date = 1) %>%
   mutate(Date = as.Date(Date)) %>%
   drop_na()
@@ -75,7 +75,7 @@ indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
 }
 
 
-indtjeningscalc(multiplier = 10, profit_pct = 0.2)
+indtjeningscalc(multiplier = 10, profit_pct = 0.1)
 
 
 

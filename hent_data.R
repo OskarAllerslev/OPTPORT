@@ -7,9 +7,72 @@ library(lubridate)
 # tickers <- c("EUNL.DE", "EXXT.DE", "ERNE.DE", "XD9U.DE", "IQQH.DE",
 #              "DBX1.DE", "IS3N.DE", "SXR8.DE", "XDUK.DE", "EXS1.DE",
 #              "SPYW.DE", "CSEM.DE", "EUNS.DE", "CSPX.DE", "SXRJ.DE")
+ftse100_tickers <- c(
+  "AZN.L", "HSBA.L", "BP.L", "GSK.L", "DGE.L",
+  "ULVR.L", "BATS.L", "RIO.L", "GLEN.L", "SHEL.L",
+  "VOD.L", "RDSA.L", "RDSB.L", "BARC.L", "LLOY.L",
+  "NG.L", "REL.L", "PR"
+)
 
+dax40_tickers <- c(
+  "ADS.DE", "AIR.DE", "ALV.DE", "BAS.DE", "BAYN.DE",
+  "BEI.DE", "BMW.DE", "CON.DE", "1COV.DE", "DAI.DE",
+  "DHER.DE", "DBK.DE", "DB1.DE", "DPW.DE", "DTE.DE",
+  "DWNI.DE", "EOAN.DE", "FRE.DE", "FME.DE", "HEI.DE",
+  "HEN3.DE", "IFX.DE", "LIN.DE", "MRK.DE", "MTX.DE",
+  "MUV2.DE", "RWE.DE", "SAP.DE", "SIE.DE", "SY1.DE",
+  "VOW3.DE", "VNA.DE", "WDI.DE", "ZAL.DE", "HFG.DE",
+  "LEG.DE", "SHL.DE", "SRT3.DE", "ENR.DE", "PUM.DE"
+)
 
-tickers <- c(
+nasdaq100_tickers <- c(
+  "AAPL", "MSFT", "AMZN", "GOOGL", "META",
+  "NVDA", "TSLA", "PYPL", "ADBE", "CMCSA",
+  "NFLX", "INTC", "PEP", "CSCO", "AVGO",
+  "COST", "TMUS", "TXN", "QCOM", "CHTR",
+  "AMGN", "SBUX", "INTU", "ISRG", "MDLZ",
+  "ADP", "MU", "BKNG", "GILD", "LRCX",
+  "FISV", "ATVI", "ADSK", "CSX", "ILMN",
+  "MRNA", "MELI", "KHC", "DXCM", "CDNS",
+  "KLAC", "LULU", "ORLY", "PAYX", "XEL",
+  "IDXX", "WBA", "VRSK", "MAR", "MTCH",
+  "CTAS", "PCAR", "EXC", "MNST", "EBAY",
+  "ROST", "SIRI", "VRSN", "NTES", "FAST",
+  "BIIB", "ALGN", "SWKS", "DLTR", "ANSS",
+  "WDAY", "TTD", "SNPS", "OKTA", "TEAM",
+  "ZS", "DOCU", "SGEN", "BIDU", "JD",
+  "PDD", "MCHP", "CDW", "SPLK", "CTSH",
+  "NTAP", "CHKP", "FOXA", "FOX", "VRSK",
+  "LBTYA", "LBTYK", "LILA", "LILAK", "CERN",
+  "PTON", "BMRN", "INCY", "MXIM", "UAL",
+  "EXPE", "JBHT", "WDC", "TTWO", "NTES"
+)
+
+sp500_tickers <- c(
+  "AAPL", "MSFT", "AMZN", "GOOGL", "META",
+  "BRK.B", "NVDA", "TSLA", "JPM", "JNJ",
+  "V", "PG", "UNH", "HD", "DIS",
+  "PYPL", "MA", "INTC", "NFLX", "ADBE",
+  "CMCSA", "PFE", "KO", "PEP", "T",
+  "XOM", "CSCO", "ABT", "CVX", "MRK",
+  "NKE", "WFC", "MCD", "IBM", "BA",
+  "ORCL", "GE", "HON", "COST", "SBUX",
+  "MDT", "AMGN", "CAT", "MMM", "GS",
+  "ISRG", "BLK", "BKNG", "ZTS", "TMO",
+  "FIS", "CI", "GILD", "LMT", "SYK",
+  "ADP", "CB", "USB", "BMY", "SCHW",
+  "SPGI", "PLD", "MO", "AXP", "C",
+  "TJX", "DUK", "SO", "BDX", "CCI",
+  "CL", "NSC", "ICE", "ITW", "PNC",
+  "ETN", "AON", "WM", "CSX", "EW",
+  "ROP", "TFC", "EMR", "HUM", "DHR",
+  "APD", "ECL", "FISV", "MAR", "AIG",
+  "PSA", "MCO", "ADSK", "AEP", "D",
+  "KMB", "MET", "A", "IDXX", "AZO",
+  "TRV", "SHW", "CTAS", "ANSS", "VRSK"
+)
+
+tickers_i <- c(
   "EUNL.DE", "EXXT.DE", "ERNE.DE", "XD9U.DE", "IQQH.DE", "DBX1.DE", "IS3N.DE", "SXR8.DE", "XDUK.DE", "EXS1.DE",
   "SPYW.DE", "CSEM.DE", "EUNS.DE", "CSPX.DE", "SXRJ.DE", "VUSA.DE", "VUAA.DE", "VEUR.DE", "VGVE.DE", "VGEA.DE",
   "EUNM.DE", "EUNH.DE", "IBCI.DE", "XDWD.DE", "XMME.DE", "XDJP.DE", "XDEX.DE", "XDEM.DE", "XCS6.DE", "XCS5.DE",
@@ -23,6 +86,9 @@ tickers <- c(
   "XS6R.DE", "XS6S.DE", "XS6T.DE", "XS6U.DE", "XS6V.DE", "XS6W.DE", "XS6X.DE", "XS6Y.DE", "XS6Z.DE", "XS70.DE",
   "XD6F.DE", "XD6G.DE", "XD6H.DE", "XD6J.DE", "XD6K.DE", "XD6L.DE", "XD6M.DE", "XD6N.DE", "XD6O.DE", "XD6P.DE"
 )
+
+
+tickers <- c(ftse100_tickers,dax40_tickers,nasdaq100_tickers ,sp500_tickers, tickers_i )
 
 get_prices <- function(ticker, from = "2021-01-01") {
   tryCatch({

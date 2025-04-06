@@ -1,13 +1,16 @@
-mean_cvar_optim <- function(path_to_csv = "data/data_udvalgt.csv", p_cvar = 0.95) {
+mean_cvar_optim <- function(
+  path_to_returns = "data/monthly_log_returns.csv",
+  path_to_cov = "data/shrinked_covariance.csv",
+  p_cvar = 0.95
+) {
   library(tidyverse)
   library(xts)
-  library(corpcor)
   library(PortfolioAnalytics)
   library(ROI)
   library(ROI.plugin.glpk)
 
-  # 1. Indlæs data
-  returns <- read_csv(path_to_csv) %>%
+  # 1. Indlæs returns
+  returns <- read_csv(path_to_returns) %>%
     rename(Date = 1) %>%
     mutate(Date = as.Date(Date))
 
@@ -22,21 +25,26 @@ mean_cvar_optim <- function(path_to_csv = "data/data_udvalgt.csv", p_cvar = 0.95
     add.objective(type = "return", name = "mean") %>%
     add.objective(type = "risk", name = "CVaR", arguments = list(p = p_cvar))
 
-  # 3. Optimer porteføljen
+  # 3. Optimer porteføljen (baseret på return matrix, ikke covariance)
   opt_result <- optimize.portfolio(R = returns_xts, portfolio = port_spec,
                                    optimize_method = "ROI", trace = FALSE)
 
   weights <- extractWeights(opt_result)
 
-  # 4. Beregn performance
+  # 4. Indlæs shrinked kovariansmatrix
+  cov_df <- read.csv(path_to_cov, row.names = 1)
+  cov_matrix <- as.matrix(cov_df)
+  cov_matrix <- cov_matrix[assets, assets]  # sørg for rækkefølge matcher
+
+  # 5. Beregn årlige afkast og porteføljestatistik
   mu_monthly <- colMeans(returns_xts)
   mu_annual <- mu_monthly * 12
-  sigma <- corpcor::cov.shrink(returns_xts) * 12
+  sigma <- cov_matrix * 12  # annualiseret
 
   port_ret <- sum(weights * mu_annual)
   port_vol <- sqrt(t(weights) %*% sigma %*% weights)
 
-  # 5. Returnér resultat som tibble
+  # 6. Returnér som tibble
   tibble(
     Ticker = names(weights),
     Weight = round(as.numeric(weights), 4),
@@ -46,7 +54,6 @@ mean_cvar_optim <- function(path_to_csv = "data/data_udvalgt.csv", p_cvar = 0.95
     Method = paste0("Mean-CVaR (", p_cvar * 100, "%)")
   )
 }
-
 
 
 

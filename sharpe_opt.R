@@ -1,4 +1,4 @@
-sharpe_optim <- function(path_to_csv = "data/data_udvalgt.csv", rf_annual = 0.044) {
+sharpe_optim <- function(path_to_csv = "data/monthly_log_returns.csv", rf_annual = 0.044) {
   library(tidyverse)
   library(corpcor)
 
@@ -14,16 +14,16 @@ sharpe_optim <- function(path_to_csv = "data/data_udvalgt.csv", rf_annual = 0.04
 
   mu_monthly <- colMeans(returns_mat)
   mu_annual <- mu_monthly * 12
-  sigma <- corpcor::cov.shrink(returns_mat) * 12
+  sigma <- cov.shrink(returns_mat) * 12  # annualiseret kovariansmatrix
 
-  # 2. Objektivfunktion: max Sharpe ratio
+  # 2. Objektivfunktion: max Sharpe ratio (vi minimerer negativ Sharpe)
   sharpe_obj <- function(w) {
     port_ret <- sum(w * mu_annual)
     port_vol <- sqrt(t(w) %*% sigma %*% w)
     -(port_ret - rf_annual) / port_vol
   }
 
-  # 3. Optimér
+  # 3. Optimér med begrænsninger: vægte ≥ 0 og sum = 1
   dres <- optim(
     par = rep(1 / length(mu_annual), length(mu_annual)),
     fn = sharpe_obj,
@@ -33,12 +33,12 @@ sharpe_optim <- function(path_to_csv = "data/data_udvalgt.csv", rf_annual = 0.04
     control = list(fnscale = 1)
   )
 
-  w_opt <- dres$par / sum(dres$par)
+  w_opt <- dres$par / sum(dres$par)  # normaliser vægte
   port_ret <- sum(w_opt * mu_annual)
   port_vol <- sqrt(t(w_opt) %*% sigma %*% w_opt)
   sharpe <- (port_ret - rf_annual) / port_vol
 
-  # 4. Returnér tibble
+  # 4. Returnér som tibble
   tibble(
     Ticker = colnames(returns_mat),
     Weight = round(w_opt, 4),
@@ -49,6 +49,7 @@ sharpe_optim <- function(path_to_csv = "data/data_udvalgt.csv", rf_annual = 0.04
     Method = "Sharpe Ratio"
   )
 }
+
 
 
 
