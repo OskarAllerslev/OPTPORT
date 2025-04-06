@@ -57,6 +57,7 @@ perf_table
 
 
 
+
 indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
   cap <- 100000 * multiplier
 
@@ -76,6 +77,62 @@ indtjeningscalc <- function(multiplier = 1, profit_pct = 1, rf = 0.044) {
 
 
 indtjeningscalc(multiplier = 10, profit_pct = 0.1)
+
+
+
+evaluate_all_metrics <- function(perf_long, benchmark_col = "Benchmark", rf = 0.044) {
+  library(tidyverse)
+  library(PerformanceAnalytics)
+  library(xts)
+
+  # Konverter til liste med xts-objekter
+  perf_xts_list <- perf_long %>%
+    pivot_wider(names_from = Portfolio, values_from = returns) %>%
+    mutate(date = as.Date(date)) %>%
+    column_to_rownames("date") %>%
+    as.xts()
+
+  portfolios <- colnames(perf_xts_list)
+
+  # Brug benchmark til beta
+  benchmark_returns <- perf_xts_list[, benchmark_col]
+
+  # Beregn alle nøgletal
+  metrics <- lapply(portfolios, function(pf) {
+    Ra <- perf_xts_list[, pf]
+    tibble(
+      Portfolio = pf,
+      AnnualizedReturn = Return.annualized(Ra, scale = 12)[1],
+      AnnualizedStdDev = StdDev.annualized(Ra, scale = 12)[1],
+      SharpeRatio = SharpeRatio(Ra, Rf = rf / 12, scale = 12)[1],
+      SortinoRatio = SortinoRatio(Ra, Rf = rf / 12, scale = 12)[1],
+      MaxDrawdown = maxDrawdown(Ra)[1],
+      VaR_95 = VaR(Ra, p = 0.95, method = "historical")[1],
+      CVaR_95 = CVaR(Ra, p = 0.95, method = "historical")[1],
+      Beta = CAPM.beta(Ra, benchmark_returns)[1]
+    )
+  })
+
+  bind_rows(metrics) %>% mutate(across(where(is.numeric), round, 4))
+}
+evaluate_all_metrics(perf_long)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
