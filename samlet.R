@@ -6,8 +6,27 @@ cvar_result <- mean_cvar_optim()
 sharpe_result <- sharpe_optim()
 
 
+
+
+
 cvar_result
 sharpe_result
+
+
+
+result <- sharpe_optim_cardinality(
+  path_to_csv = "data/monthly_log_returns.csv",
+  rf_annual   = 0.044,
+  max_assets  = 10,   # ønsket kardinalitet
+  search_size = 5000  # evt. større for bedre solutions
+)
+
+# Se valgt portefølje
+result$weights_table
+# Se performance
+result$metrics
+
+
 
 plot_portfolios_vs_benchmark(sharpe_result, cvar_result, benchmark_name = "EQQQ.DE")
 

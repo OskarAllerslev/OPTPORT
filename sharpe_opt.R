@@ -52,77 +52,97 @@ sharpe_optim <- function(path_to_csv = "data/monthly_log_returns.csv", rf_annual
 
 
 
+sharpe_optim_cardinality <- function(
+  path_to_csv  = "data/monthly_log_returns.csv",
+  rf_annual    = 0.044,
+  max_assets   = 10,
+  search_size  = 2000
+) {
+  # Pakker
+  library(tidyverse)
+  library(xts)
+  library(PortfolioAnalytics)
+  library(ROI)
+  library(ROI.plugin.glpk)       # Til lineære constraints
+  # Hvis du får “Fejl i gmv_opt... plugin...”, kan du også prøve:
+  # install.packages("ROI.plugin.quadprog")
+  # library(ROI.plugin.quadprog)
 
+  # 1) Læs data til xts
+  returns <- read_csv(path_to_csv, show_col_types = FALSE) %>%
+    rename(Date = 1) %>%
+    mutate(Date = as.Date(Date)) %>%
+    drop_na()
 
-# plot --------------------------------------------------------------------
+  returns_xts <- xts::xts(returns[, -1], order.by = returns$Date)
 
-library(scales)
+  # 2) Definér portfolio-spec med cardinality constraint
+  asset_names <- colnames(returns_xts)
+  pspec <- portfolio.spec(assets = asset_names) %>%
+    add.constraint(type = "full_investment") %>%
+    add.constraint(type = "long_only") %>%
+    add.constraint(type = "position_limit", max_pos = max_assets)
 
+  # 3) Definér Sharpe-objektiv som custom-funktion.
+  #    Bemærk at solveren i PortfolioAnalytics minimerer "risk"-objektivet,
+  #    så vi returnerer -Sharpe.
+  sharpe_custom <- function(R, weights) {
+    port_rets <- as.numeric(R %*% weights)
+    mu_m      <- mean(port_rets)
+    sd_m      <- sd(port_rets)
+    # Årligt
+    mu_annual <- mu_m  * 12
+    sd_annual <- sd_m  * sqrt(12)
+    # Sharpe
+    shr <- (mu_annual - rf_annual) / sd_annual
+    # Retuner NEGATIV Sharpe => minimér => max Sharpe
+    return(-shr)
+  }
 
-# 1. Indlæs og forbered
-returns_xts <- read_csv("data/data_udvalgt.csv") %>%
-  rename(Date = 1) %>%
-  mutate(Date = as.Date(Date)) %>%
-  drop_na()
+  pspec <- add.objective(
+    portfolio  = pspec,
+    type       = "risk",   # “risk”-type => minimer
+    name       = "CustomSharpe",
+    arguments  = list(FUN = sharpe_custom)
+  )
 
-dates <- returns_xts$Date
-returns_mat <- returns_xts %>% select(-Date) %>% as.matrix()
+  # 4) Kør heuristisk optimering
+  opt_result <- optimize.portfolio(
+    R                = returns_xts,
+    portfolio        = pspec,
+    optimize_method  = "DE",       # Differential Evolution
+    search_size      = search_size,
+    trace            = FALSE
+  )
 
-# 2. Beregn portefølje og benchmark
-port_returns <- as.numeric(returns_mat %*% w_opt)
-cum_port <- 100 * exp(cumsum(port_returns))
+  # 5) Udpak vægte
+  w_opt <- extractWeights(opt_result)
+  if (is.null(w_opt)) {
+    stop("Solveren fandt ingen brugbar løsning. Prøv større search_size, anden metode, eller check constraints/data.")
+  }
 
-benchmark_name <- "EQQQ.DE"
-benchmark_returns <- returns_mat[, benchmark_name]
-cum_benchmark <- 100 * exp(cumsum(benchmark_returns))
+  # 6) Beregn Sharpe i den fundne løsning
+  port_returns <- as.numeric(returns_xts %*% w_opt)
+  mu_m         <- mean(port_returns)
+  sd_m         <- sd(port_returns)
+  mu_annual    <- mu_m  * 12
+  sd_annual    <- sd_m  * sqrt(12)
+  sharpe_val   <- (mu_annual - rf_annual) / sd_annual
 
-# 3. Fjern benchmark fra asset-matrix inden plot
-asset_names <- setdiff(colnames(returns_mat), benchmark_name)
-cum_assets <- apply(returns_mat[, asset_names], 2, function(x) 100 * exp(cumsum(x)))
-
-# 4. Saml alt i ét plot-dataframe
-performance_df <- as_tibble(cum_assets)
-performance_df$Date <- dates
-
-# Tilføj portefølje og benchmark
-performance_df <- performance_df %>%
-  mutate(Portfolio = cum_port,
-         Benchmark = cum_benchmark)
-
-# 5. Omform til long format
-performance_long <- performance_df %>%
-  pivot_longer(-Date, names_to = "Asset", values_to = "Value") %>%
-  mutate(Type = case_when(
-    Asset == "Portfolio" ~ "Portfolio",
-    Asset == "Benchmark" ~ "Benchmark",
-    TRUE ~ "Asset"
-  ))
-
-# 6. Plot med farver og lagorden
-ggplot() +
-  geom_line(
-    data = performance_long %>% filter(Type == "Asset"),
-    aes(x = Date, y = Value, group = Asset),
-    color = "gray", size = 0.5, alpha = 0.7
-  ) +
-  geom_line(
-    data = performance_long %>% filter(Type == "Benchmark"),
-    aes(x = Date, y = Value),
-    color = "red", size = 1.2
-  ) +
-  geom_line(
-    data = performance_long %>% filter(Type == "Portfolio"),
-    aes(x = Date, y = Value),
-    color = "green", size = 1.2
-  ) +
-  labs(title = "📊 Portefølje vs Benchmark vs Aktiver",
-       y = "Værdi (Start = 100 kr)", x = NULL) +
-  scale_y_continuous(labels = dollar_format(suffix = " kr", prefix = "")) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        plot.title = element_text(face = "bold"))
-
-
-
+  # 7) Returnér tibble med de aktiver, der faktisk indgår (Weight > 0)
+  #    + portefølje-statistik
+  tibble(
+    Ticker              = asset_names,
+    Weight              = round(w_opt, 4)
+  ) %>%
+    filter(Weight > 0) %>%
+    arrange(desc(Weight)) %>%
+    mutate(
+      PortfolioReturn     = round(mu_annual, 4),
+      PortfolioVolatility = round(sd_annual, 4),
+      SharpeRatio         = round(sharpe_val, 4),
+      Method = paste0("Sharpe w. cardinality ≤ ", max_assets)
+    )
+}
 
 
